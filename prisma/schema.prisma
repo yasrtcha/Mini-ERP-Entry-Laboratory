@@ -1,0 +1,76 @@
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role { OWNER, ADMIN, PRODUCTION }
+enum OrderStatus { PENDING, CUTTING, SEWING, FINISHING, READY }
+enum MaterialType { FABRIC, THREAD, ACCESSORY }
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String   
+  role      Role     @default(PRODUCTION)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Material {
+  id          String       @id @default(uuid())
+  name        String       
+  type        MaterialType @default(FABRIC)
+  unit        String       
+  stock       Float        @default(0)
+  minStock    Float        @default(20) 
+  boms        BillOfMaterial[] 
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String   
+  basePrice   Decimal  
+  boms        BillOfMaterial[] 
+  orderItems  OrderItem[]      
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BillOfMaterial {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  materialId  String
+  material    Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  qtyNeeded   Float    
+  @@unique([productId, materialId]) 
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  clientName  String      
+  deadline    DateTime    
+  totalPrice  Decimal     
+  status      OrderStatus @default(PENDING)
+  items       OrderItem[] 
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size        String   
+  qty         Int      
+}
